@@ -4,7 +4,7 @@
 #include <time.h>
 
 #define WIDTH 7
-#define HEIGHT 6
+#define HEIGHT 7
 
 #define OTHER_PLAYER(i) (1-(i))
 
@@ -55,15 +55,13 @@ int play_move( State * state, Move * move ) {
 
     int i = HEIGHT-1;
     while(state->board[i][move->column] != ' ' && i >= 0) {
-        i--;
+        --i;
     }
     if (i < 0) {
         return 0;
     }
     else {
         state->board[i][move->column] = state->player ? 'O' : 'X';
-        printf("%d\n", i);
-        printf("%d\n", move->column);
         // à l'autre joueur de jouer
         state->player = OTHER_PLAYER(state->player);
 
