@@ -6,6 +6,8 @@
 #define WIDTH 7
 #define HEIGHT 6
 
+#define OTHER_PLAYER(i) (1-(i))
+
 typedef enum {NON, MATCHNUL, ORDI_GAGNE, HUMAIN_GAGNE } FinDePartie;
 
 typedef struct EtatSt {
@@ -51,18 +53,19 @@ Move * ask_move() {
 
 int play_move( State * state, Move * move ) {
 
-    int i = WIDTH-2;
+    int i = HEIGHT-1;
     while(state->board[i][move->column] != ' ' && i >= 0) {
         i--;
     }
-    if (i >= WIDTH) {
+    if (i < 0) {
         return 0;
     }
     else {
         state->board[i][move->column] = state->player ? 'O' : 'X';
-
+        printf("%d\n", i);
+        printf("%d\n", move->column);
         // à l'autre joueur de jouer
-        //state->player = AUTRE_JOUEUR(etat->joueur);
+        state->player = OTHER_PLAYER(state->player);
 
         return 1;
     }
@@ -92,20 +95,15 @@ void print_game(State * state) {
 
 int main() {
 
-    State * state = init_state();
-    Move * move;
-    print_game(state);
+    State *state = init_state();
+    Move *move;
+    FinDePartie end = NON;
     do {
-        move = ask_move();
-    } while ( !play_move(state, move) );
-    print_game(state);
-    do {
-        move = ask_move();
-    } while ( !play_move(state, move) );
-    print_game(state);
-    do {
-        move = ask_move();
-    } while ( !play_move(state, move) );
-    print_game(state);
+        printf("\n");
+        print_game(state);
+        do {
+            move = ask_move();
+        } while (!play_move(state, move));
+    }while ( end == NON ) ;
     return 0;
 }
