@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <ctype.h>
+#include <string.h>
 
 #define WIDTH 7
 #define HEIGHT 7
@@ -44,11 +46,22 @@ Move * new_move(int i) {
 
 Move * ask_move() {
 
-    int i;
-    printf(" Which column? ") ;
-    scanf("%d",&i);
-
-    return new_move(i);
+    char input[10];
+    int input_integer, length, i;
+    int inputIsNumber;
+    do {
+        inputIsNumber = 1;
+        printf(" Which column? ");
+        scanf("%s", &input);
+        length = strlen(input);
+        for (i=0;i<length; i++) {
+            if (!isdigit(input[i])) {
+                inputIsNumber = 0;
+            }
+        }
+        sscanf(input, "%d", &input_integer);
+    } while (!inputIsNumber || input_integer < 0 || input_integer >= WIDTH);
+    return new_move(input_integer);
 }
 
 int play_move( State * state, Move * move ) {
@@ -64,7 +77,6 @@ int play_move( State * state, Move * move ) {
         state->board[i][move->column] = state->player ? 'O' : 'X';
         // à l'autre joueur de jouer
         state->player = OTHER_PLAYER(state->player);
-
         return 1;
     }
 }
@@ -89,7 +101,51 @@ void print_game(State * state) {
     }
 }
 
+FinDePartie end_test(State * state) {
 
+    int i, j, k, n = 0;
+    for (i = 0 ; i < WIDTH ; i++) {
+        for (j = 0 ; j < HEIGHT ; j++) {
+            if ( state->board[i][j] != ' ') {
+                n++;
+
+                // lignes
+                k=0;
+                while ( k < 4 && i+k < WIDTH && state->board[i+k][j] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                // colonnes
+                k=0;
+                while ( k < 4 && j+k < HEIGHT && state->board[i][j-k] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                // diagonales
+                k=0;
+                while ( k < 4 && i+k < WIDTH && j+k < HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                k=0;
+                while ( k < 4 && i+k < WIDTH && j-k >= 0 && state->board[i+k][j-k] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+                }
+            }
+        }
+
+    if ( n >= WIDTH * HEIGHT ) {
+        return MATCHNUL;
+    }
+
+    return NON;
+
+}
 
 int main() {
 
@@ -102,6 +158,18 @@ int main() {
         do {
             move = ask_move();
         } while (!play_move(state, move));
-    }while ( end == NON ) ;
+        end = end_test(state);
+    } while ( end == NON ) ;
+
+    printf("\n");
+    print_game(state);
+
+    if ( end == ORDI_GAGNE )
+        printf( "** L'ordinateur a gagné **\n");
+    else if ( end == MATCHNUL )
+        printf(" Match nul !  \n");
+    else
+        printf( "** BRAVO, l'ordinateur a perdu  **\n");
+
     return 0;
 }
