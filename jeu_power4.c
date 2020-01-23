@@ -270,27 +270,27 @@ FinDePartie end_test(State * state) {
 
                 // lignes
                 k=0;
-                while ( k < 4 && i+k < WIDTH && state->board[i+k][j] == state->board[i][j] )
+                while ( k < 4 && i+k <= WIDTH && state->board[i+k][j] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 // colonnes
                 k=0;
-                while ( k < 4 && j+k < HEIGHT && state->board[i][j-k] == state->board[i][j] )
+                while ( k < 4 && j+k <= HEIGHT && state->board[i][j-k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 // diagonales
                 k=0;
-                while ( k < 4 && i+k < WIDTH && j+k < HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
+                while ( k < 4 && i+k <= WIDTH && j+k <= HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 k=0;
-                while ( k < 4 && i+k < WIDTH && j-k >= 0 && state->board[i+k][j-k] == state->board[i][j] )
+                while ( k < 4 && i+k >= 0 && j-k <= WIDTH && state->board[i+k][j-k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
