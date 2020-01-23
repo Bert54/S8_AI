@@ -8,6 +8,10 @@
 #define WIDTH 7
 #define HEIGHT 7
 
+#define TIME 5		// temps de calcul pour un coup avec MCTS (en secondes)
+
+#define MAX_CHILDREN WIDTH
+
 #define OTHER_PLAYER(i) (1-(i))
 
 typedef enum {NON, MATCHNUL, ORDI_GAGNE, HUMAIN_GAGNE } FinDePartie;
@@ -26,6 +30,37 @@ typedef struct {
 
 } Move;
 
+typedef struct NoeudSt {
+
+    int player; // joueur qui a joué pour arriver ici
+    Move * move;   // coup joué par ce joueur pour arriver ici
+
+    State * state; // etat du jeu
+
+    struct NoeudSt * parent;
+    struct NoeudSt * children[MAX_CHILDREN]; // liste d'enfants : chaque enfant correspond à un coup possible
+    int nb_children;	// nb d'enfants présents dans la liste
+
+    // POUR MCTS:
+    int nb_victories;
+    int nb_simus;
+
+} Node;
+
+State * copy_state(State * src) {
+    State * state = (State *)malloc(sizeof(State));
+
+    state->player = src->player;
+
+    int i,j;
+    for (i=0; i< WIDTH; i++) {
+        for (j = 0; j < HEIGHT; j++) {
+            state->board[i][j] = src->board[i][j];
+        }
+    }
+
+    return state;
+}
 
 State * init_state() {
     State * state = (State *)malloc(sizeof(State));
@@ -42,6 +77,29 @@ Move * new_move(int i) {
     Move * move = (Move *)malloc(sizeof(Move));
     move->column = i;
     return move;
+}
+
+Move ** possible_moves(State *state) {
+
+    Move ** moves = (Move **) malloc((1+MAX_CHILDREN) * sizeof(Move *) );
+
+    int k = 0;
+    int i;
+    int j;
+    for(j = 0 ; j < WIDTH ; j++) {
+        i = HEIGHT-1;
+        while (state->board[i][j] != ' ' && i >= 0) {
+            --i;
+        }
+        if (i > 0) {
+            moves[k] = new_move(j);
+            k++;
+        }
+    }
+
+    moves[k] = NULL;
+
+    return moves;
 }
 
 Move * ask_move() {
@@ -79,6 +137,107 @@ int play_move( State * state, Move * move ) {
         state->player = OTHER_PLAYER(state->player);
         return 1;
     }
+}
+
+Node * new_node(Node * parent, Move * coup ) {
+    Node * noeud = (Node *)malloc(sizeof(Node));
+
+    if ( parent != NULL && coup != NULL ) {
+        noeud->state = copy_state(parent->state);
+        play_move( noeud->state, coup );
+        noeud->move = coup;
+        noeud->player = OTHER_PLAYER(parent->player);
+    }
+    else {
+        noeud->state = NULL;
+        noeud->move = NULL;
+        noeud->player = 0;
+    }
+    noeud->parent = parent;
+    noeud->nb_children = 0;
+
+    // POUR MCTS:
+    noeud->nb_victories = 0;
+    noeud->nb_simus = 0;
+
+
+    return noeud;
+}
+
+Node * add_child(Node * parent, Move * coup) {
+    Node * enfant = new_node(parent, coup ) ;
+    parent->children[parent->nb_children] = enfant;
+    parent->nb_children++;
+    return enfant;
+}
+
+void free_node(Node * noeud) {
+    if ( noeud->state != NULL)
+        free (noeud->state);
+
+    while ( noeud->nb_children > 0 ) {
+        free_node(noeud->children[noeud->nb_children-1]);
+        noeud->nb_children --;
+    }
+    if ( noeud->move != NULL)
+        free(noeud->move);
+
+    free(noeud);
+}
+
+void ai_play_mcts(State * state, int maxtime) {
+
+    clock_t tic, toc;
+    tic = clock();
+    int temps;
+
+    Move **moves;
+    Move *best_move;
+
+    // Créer l'arbre de recherche
+    Node *root = new_node(NULL, NULL);
+    root->state = copy_state(state);
+
+    // créer les premiers noeuds:
+    moves = possible_moves(root->state);
+    int k = 0;
+    Node *child;
+    while (moves[k] != NULL) {
+        child = add_child(root, moves[k]);
+        k++;
+    }
+
+
+    best_move = moves[rand() % k]; // choix aléatoire
+
+    /*  TODO :
+        - supprimer la sélection aléatoire du meilleur coup ci-dessus
+        - implémenter l'algorithme MCTS-UCT pour déterminer le meilleur coup ci-dessous
+
+    int iter = 0;
+
+    do {
+
+
+
+        // à compléter par l'algorithme MCTS-UCT...
+
+
+
+
+        toc = clock();
+        temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
+        iter ++;
+    } while ( temps < tempsmax );
+
+    /* fin de l'algorithme  */
+
+    // Jouer le meilleur premier coup
+    play_move(state, best_move);
+
+    // Penser à libérer la mémoire :
+    free_node(root);
+    free(moves);
 }
 
 void print_game(State * state) {
@@ -155,10 +314,21 @@ int main() {
     do {
         printf("\n");
         print_game(state);
-        do {
-            move = ask_move();
-        } while (!play_move(state, move));
-        end = end_test(state);
+        if ( state->player == 0 ) {
+            // tour de l'humain
+
+            do {
+                move = ask_move();
+            } while (!play_move(state, move));
+            end = end_test(state);
+
+        }
+        else {
+            // tour de l'Ordinateur
+
+            ai_play_mcts(state, TIME);
+
+        }
     } while ( end == NON ) ;
 
     printf("\n");
