@@ -264,40 +264,40 @@ FinDePartie end_test(State * state) {
 
     int i, j, k, n = 0;
     for (i = 0 ; i < WIDTH ; i++) {
-        for (j = 0 ; j < HEIGHT ; j++) {
-            if ( state->board[i][j] != ' ') {
+        for (j = 0; j < HEIGHT; j++) {
+            if (state->board[i][j] != ' ') {
                 n++;
 
                 // lignes
-                k=0;
-                while ( k < 4 && i+k <= WIDTH && state->board[i+k][j] == state->board[i][j] )
-                    k++;
-                if ( k >= 4 )
-                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+                k = 0;
+                while (k < 4 && i + k < WIDTH && state->board[i + k][j] == state->board[i][j]) {
+                    k ++;
+                }
+                if (k >= 4)
+                    return state->board[i][j] == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 // colonnes
                 k=0;
-                while ( k < 4 && j+k <= HEIGHT && state->board[i][j-k] == state->board[i][j] )
+                while ( k < 4 && j+k >= 0 && state->board[i][j-k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 // diagonales
                 k=0;
-                while ( k < 4 && i+k <= WIDTH && j+k <= HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
+                while ( k < 4 && i+k < WIDTH && j+k >= 0 && state->board[i+k][j+k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 k=0;
-                while ( k < 4 && i+k >= 0 && j-k <= WIDTH && state->board[i+k][j-k] == state->board[i][j] )
+                while ( k < 4 && i+k >= 0 && j-k < WIDTH && state->board[i+k][j-k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
                 }
             }
         }
-
     if ( n >= WIDTH * HEIGHT ) {
         return MATCHNUL;
     }
