@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define WIDTH 7
-#define HEIGHT 7
+#define HEIGHT 6
 
 #define TIME 5		// temps de calcul pour un coup avec MCTS (en secondes)
 
@@ -20,7 +20,7 @@ typedef struct EtatSt {
 
     int player;
 
-    char board[WIDTH][HEIGHT];
+    char board[HEIGHT][WIDTH];
 
 } State;
 
@@ -53,8 +53,8 @@ State * copy_state(State * src) {
     state->player = src->player;
 
     int i,j;
-    for (i=0; i< WIDTH; i++) {
-        for (j = 0; j < HEIGHT; j++) {
+    for (i=0; i< HEIGHT; i++) {
+        for (j = 0; j < WIDTH; j++) {
             state->board[i][j] = src->board[i][j];
         }
     }
@@ -66,8 +66,8 @@ State * init_state() {
     State * state = (State *)malloc(sizeof(State));
 
     int i,j;
-    for (i=0; i< WIDTH; i++)
-        for ( j=0; j<HEIGHT; j++)
+    for (i=0; i< HEIGHT; i++)
+        for ( j=0; j<WIDTH; j++)
             state->board[i][j] = ' ';
 
     return state;
@@ -263,14 +263,14 @@ void print_game(State * state) {
 FinDePartie end_test(State * state) {
 
     int i, j, k, n = 0;
-    for (i = 0 ; i < WIDTH ; i++) {
-        for (j = 0; j < HEIGHT; j++) {
+    for (i = 0 ; i < HEIGHT ; i++) {
+        for (j = 0; j < WIDTH; j++) {
             if (state->board[i][j] != ' ') {
                 n++;
 
                 // lignes
                 k = 0;
-                while (k < 4 && i + k < WIDTH && state->board[i + k][j] == state->board[i][j]) {
+                while (k < 4 && j + k < WIDTH && state->board[i][j + k] == state->board[i][j]) {
                     k ++;
                 }
                 if (k >= 4)
@@ -278,20 +278,20 @@ FinDePartie end_test(State * state) {
 
                 // colonnes
                 k=0;
-                while ( k < 4 && j+k >= 0 && state->board[i][j-k] == state->board[i][j] )
+                while ( k < 4 && i + k >= 0 && state->board[i - k][j] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 // diagonales
                 k=0;
-                while ( k < 4 && i+k < WIDTH && j+k >= 0 && state->board[i+k][j+k] == state->board[i][j] )
+                while ( k < 4 && j+k < WIDTH && i+k < HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
 
                 k=0;
-                while ( k < 4 && i+k >= 0 && j-k < WIDTH && state->board[i+k][j-k] == state->board[i][j] )
+                while ( k < 4 && i+k < HEIGHT && j-k >= 0 && state->board[i+k][j-k] == state->board[i][j] )
                     k++;
                 if ( k >= 4 )
                     return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
@@ -320,7 +320,6 @@ int main() {
             do {
                 move = ask_move();
             } while (!play_move(state, move));
-            end = end_test(state);
 
         }
         else {
@@ -329,6 +328,7 @@ int main() {
             ai_play_mcts(state, TIME);
 
         }
+        end = end_test(state);
     } while ( end == NON ) ;
 
     printf("\n");
