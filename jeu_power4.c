@@ -8,7 +8,7 @@
 #define WIDTH 7
 #define HEIGHT 6
 
-#define TIME 5		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TIME 3		// temps de calcul pour un coup avec MCTS (en secondes)
 
 #define MAX_CHILDREN WIDTH
 
@@ -44,6 +44,7 @@ typedef struct NoeudSt {
     // POUR MCTS:
     int nb_victories;
     int nb_simus;
+    int max_node;
 
 } Node;
 
@@ -159,7 +160,7 @@ Move ** possible_moves(State *state) {
     return moves;
 }
 
-Node * new_node(Node * parent, Move * coup ) {
+Node * new_node(Node * parent, Move * coup, int max_node ) {
     Node * noeud = (Node *)malloc(sizeof(Node));
 
     if ( parent != NULL && coup != NULL ) {
@@ -180,12 +181,19 @@ Node * new_node(Node * parent, Move * coup ) {
     noeud->nb_victories = 0;
     noeud->nb_simus = 0;
 
+    if (max_node) {
+        noeud->max_node = 1;
+    }
+    else {
+        noeud->max_node = 0;
+    }
+
 
     return noeud;
 }
 
-Node * add_child(Node * parent, Move * coup) {
-    Node * enfant = new_node(parent, coup ) ;
+Node * add_child(Node * parent, Move * coup, int max_node) {
+    Node * enfant = new_node(parent, coup, max_node ) ;
     parent->children[parent->nb_children] = enfant;
     parent->nb_children++;
     return enfant;
@@ -251,6 +259,56 @@ FinDePartie end_test(State * state) {
 
 }
 
+int is_win(Node * node) {
+    if (end_test(node->state) == ORDI_GAGNE) {
+        return 1;
+    }
+    return 0;
+}
+
+Node * ai_select_node_with_best_b_value(Node * node) {
+    // si il y a encore des enfants, c'est qu'on n'est pas dans une feuille, on continue donc à chercher
+    if (node->nb_children > 0) {
+        double b_values[node->nb_children];
+        int i;
+        // si un noeud enfant fait gagner l'ordi, on retourne ce noeud
+        if (node->max_node == 1) {
+            for (i = 0; i < node->nb_children; i++) {
+                if (is_win(node->children[i])) {
+                    return node->children[i];
+                }
+            }
+        }
+        // calcul des b-valeurs
+        for (i = 0; i < node->nb_children; i++) {
+            double mu;
+            if (node->nb_simus > 0) {
+                mu = node->nb_victories / node->nb_simus;
+            }
+            else {
+                mu = 0;
+            }
+            if (node->children[i]->max_node == 0) {
+                b_values[i] = mu * -1 + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus) ;
+            }
+            else {
+                b_values[i] = mu + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
+            }
+        }
+        // sélection du noeud avec la meilleure b-valeur
+        Node *best_node = node->children[0];
+        int best_node_ind = 0;
+        for (i = 1; i < node->nb_children; i++) {
+            if (b_values[i] > b_values[best_node_ind]) {
+                best_node = node->children[i];
+                best_node_ind = i;
+            }
+        }
+        return ai_select_node_with_best_b_value(best_node);
+    }
+    return node;
+}
+
 void ai_play_mcts(State * state, int maxtime) {
 
     clock_t tic, toc;
@@ -261,7 +319,7 @@ void ai_play_mcts(State * state, int maxtime) {
     Move *best_move;
 
     // Créer l'arbre de recherche
-    Node *root = new_node(NULL, NULL);
+    Node *root = new_node(NULL, NULL, 1);
     root->state = copy_state(state);
 
     // créer les premiers noeuds:
@@ -269,32 +327,33 @@ void ai_play_mcts(State * state, int maxtime) {
     int k = 0;
     Node *child;
     while (moves[k] != NULL) {
-        child = add_child(root, moves[k]);
+        child = add_child(root, moves[k], 0);
         k++;
     }
 
 
-    best_move = moves[rand() % k]; // choix aléatoire
-
-    /*  TODO :
-        - supprimer la sélection aléatoire du meilleur coup ci-dessus
-        - implémenter l'algorithme MCTS-UCT pour déterminer le meilleur coup ci-dessous
+    //best_move = moves[rand() % k]; // choix aléatoire
 
     int iter = 0;
 
+    root->nb_victories = 0;
+    root->nb_simus = 0;
+    root->max_node = 1;
     do {
 
+        Node * n = ai_select_node_with_best_b_value(root);
+        if (!is_win(n)) {
 
-
+        }
         // à compléter par l'algorithme MCTS-UCT...
 
 
-
+        best_move = n->move;
 
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
         iter ++;
-    } while ( temps < tempsmax );
+    } while ( temps < maxtime );
 
     /* fin de l'algorithme  */
 
