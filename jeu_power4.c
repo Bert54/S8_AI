@@ -73,33 +73,30 @@ State * init_state() {
     return state;
 }
 
+void print_game(State * state) {
+
+    int i,j;
+    printf("   |");
+    for ( j = 0; j < WIDTH; j++)
+        printf(" %d |", j);
+    printf("\n");
+    printf("----------------");
+    printf("\n");
+
+    for(i=0; i < HEIGHT; i++) {
+        printf(" %d |", HEIGHT - i - 1);
+        for ( j = 0; j < WIDTH; j++)
+            printf(" %c |", state->board[i][j]);
+        printf("\n");
+        printf("----------------");
+        printf("\n");
+    }
+}
+
 Move * new_move(int i) {
     Move * move = (Move *)malloc(sizeof(Move));
     move->column = i;
     return move;
-}
-
-Move ** possible_moves(State *state) {
-
-    Move ** moves = (Move **) malloc((1+MAX_CHILDREN) * sizeof(Move *) );
-
-    int k = 0;
-    int i;
-    int j;
-    for(j = 0 ; j < WIDTH ; j++) {
-        i = HEIGHT-1;
-        while (state->board[i][j] != ' ' && i >= 0) {
-            --i;
-        }
-        if (i > 0) {
-            moves[k] = new_move(j);
-            k++;
-        }
-    }
-
-    moves[k] = NULL;
-
-    return moves;
 }
 
 Move * ask_move() {
@@ -137,6 +134,29 @@ int play_move( State * state, Move * move ) {
         state->player = OTHER_PLAYER(state->player);
         return 1;
     }
+}
+
+Move ** possible_moves(State *state) {
+
+    Move ** moves = (Move **) malloc((1+MAX_CHILDREN) * sizeof(Move *) );
+
+    int k = 0;
+    int i;
+    int j;
+    for(j = 0 ; j < WIDTH ; j++) {
+        i = HEIGHT-1;
+        while (state->board[i][j] != ' ' && i >= 0) {
+            --i;
+        }
+        if (i > 0) {
+            moves[k] = new_move(j);
+            k++;
+        }
+    }
+
+    moves[k] = NULL;
+
+    return moves;
 }
 
 Node * new_node(Node * parent, Move * coup ) {
@@ -183,6 +203,52 @@ void free_node(Node * noeud) {
         free(noeud->move);
 
     free(noeud);
+}
+
+FinDePartie end_test(State * state) {
+
+    int i, j, k, n = 0;
+    for (i = 0 ; i < HEIGHT ; i++) {
+        for (j = 0; j < WIDTH; j++) {
+            if (state->board[i][j] != ' ') {
+                n++;
+
+                // lignes
+                k = 0;
+                while (k < 4 && j + k < WIDTH && state->board[i][j + k] == state->board[i][j]) {
+                    k ++;
+                }
+                if (k >= 4)
+                    return state->board[i][j] == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                // colonnes
+                k=0;
+                while ( k < 4 && i + k >= 0 && state->board[i - k][j] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                // diagonales
+                k=0;
+                while ( k < 4 && j+k < WIDTH && i+k < HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+
+                k=0;
+                while ( k < 4 && i+k < HEIGHT && j-k >= 0 && state->board[i+k][j-k] == state->board[i][j] )
+                    k++;
+                if ( k >= 4 )
+                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+            }
+        }
+    }
+    if ( n >= WIDTH * HEIGHT ) {
+        return MATCHNUL;
+    }
+
+    return NON;
+
 }
 
 void ai_play_mcts(State * state, int maxtime) {
@@ -240,77 +306,13 @@ void ai_play_mcts(State * state, int maxtime) {
     free(moves);
 }
 
-void print_game(State * state) {
-
-    int i,j;
-    printf("   |");
-    for ( j = 0; j < WIDTH; j++)
-        printf(" %d |", j);
-    printf("\n");
-    printf("----------------");
-    printf("\n");
-
-    for(i=0; i < HEIGHT; i++) {
-        printf(" %d |", HEIGHT - i - 1);
-        for ( j = 0; j < WIDTH; j++)
-            printf(" %c |", state->board[i][j]);
-        printf("\n");
-        printf("----------------");
-        printf("\n");
-    }
-}
-
-FinDePartie end_test(State * state) {
-
-    int i, j, k, n = 0;
-    for (i = 0 ; i < HEIGHT ; i++) {
-        for (j = 0; j < WIDTH; j++) {
-            if (state->board[i][j] != ' ') {
-                n++;
-
-                // lignes
-                k = 0;
-                while (k < 4 && j + k < WIDTH && state->board[i][j + k] == state->board[i][j]) {
-                    k ++;
-                }
-                if (k >= 4)
-                    return state->board[i][j] == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                // colonnes
-                k=0;
-                while ( k < 4 && i + k >= 0 && state->board[i - k][j] == state->board[i][j] )
-                    k++;
-                if ( k >= 4 )
-                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                // diagonales
-                k=0;
-                while ( k < 4 && j+k < WIDTH && i+k < HEIGHT && state->board[i+k][j+k] == state->board[i][j] )
-                    k++;
-                if ( k >= 4 )
-                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                k=0;
-                while ( k < 4 && i+k < HEIGHT && j-k >= 0 && state->board[i+k][j-k] == state->board[i][j] )
-                    k++;
-                if ( k >= 4 )
-                    return state->board[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-                }
-            }
-        }
-    if ( n >= WIDTH * HEIGHT ) {
-        return MATCHNUL;
-    }
-
-    return NON;
-
-}
-
 int main() {
 
     State *state = init_state();
     Move *move;
     FinDePartie end = NON;
+    printf("Who starts? (0 : human, 1 : computer)");
+    scanf("%d", &(state->player) );
     do {
         printf("\n");
         print_game(state);
@@ -335,11 +337,11 @@ int main() {
     print_game(state);
 
     if ( end == ORDI_GAGNE )
-        printf( "** L'ordinateur a gagné **\n");
+        printf( "** The computer won **\n");
     else if ( end == MATCHNUL )
-        printf(" Match nul !  \n");
+        printf(" It's a tie!  \n");
     else
-        printf( "** BRAVO, l'ordinateur a perdu  **\n");
+        printf( "** CONGRATULATIONS, the computer lost **\n");
 
     return 0;
 }
