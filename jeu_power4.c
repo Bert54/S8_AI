@@ -149,7 +149,7 @@ Move ** possible_moves(State *state) {
         while (state->board[i][j] != ' ' && i >= 0) {
             --i;
         }
-        if (i > 0) {
+        if (i >= 0) {
             moves[k] = new_move(j);
             k++;
         }
@@ -320,6 +320,7 @@ Node * ai_expand_node_and_choose_new_child(Node * node) {
         else {
             add_child(node, moves[k], 1);
         }
+        node->children[k]->parent = node;
         k++;
     }
     return node->children[rand() % k];
@@ -354,16 +355,14 @@ void ai_play_mcts(State * state, int maxtime) {
     root->nb_victories = 0;
     root->nb_simus = 0;
     root->max_node = 1;
+    Node *n;
     do {
 
-        Node * n = ai_select_node_with_best_b_value(root);
+        n = ai_select_node_with_best_b_value(root);
         if (!is_win(n)) {
-            Node * n2 = ai_expand_node_and_choose_new_child(n);
+            n = ai_expand_node_and_choose_new_child(n);
         }
         // à compléter par l'algorithme MCTS-UCT...
-
-
-        best_move = n->move;
 
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
@@ -371,6 +370,11 @@ void ai_play_mcts(State * state, int maxtime) {
     } while ( temps < maxtime );
 
     /* fin de l'algorithme  */
+
+    while (n->parent != NULL && n->parent->parent != NULL) {
+        n = n->parent;
+    }
+    best_move = n->move;
 
     // Jouer le meilleur premier coup
     play_move(state, best_move);
