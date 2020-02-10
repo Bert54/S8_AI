@@ -309,6 +309,22 @@ Node * ai_select_node_with_best_b_value(Node * node) {
     return node;
 }
 
+Node * ai_expand_node_and_choose_new_child(Node * node) {
+    Move **moves;
+    moves = possible_moves(node->state);
+    int k = 0;
+    while (moves[k] != NULL) {
+        if (node->max_node == 1) {
+            add_child(node, moves[k], 0);
+        }
+        else {
+            add_child(node, moves[k], 1);
+        }
+        k++;
+    }
+    return node->children[rand() % k];
+}
+
 void ai_play_mcts(State * state, int maxtime) {
 
     clock_t tic, toc;
@@ -325,9 +341,8 @@ void ai_play_mcts(State * state, int maxtime) {
     // créer les premiers noeuds:
     moves = possible_moves(root->state);
     int k = 0;
-    Node *child;
     while (moves[k] != NULL) {
-        child = add_child(root, moves[k], 0);
+        add_child(root, moves[k], 0);
         k++;
     }
 
@@ -343,7 +358,7 @@ void ai_play_mcts(State * state, int maxtime) {
 
         Node * n = ai_select_node_with_best_b_value(root);
         if (!is_win(n)) {
-
+            Node * n2 = ai_expand_node_and_choose_new_child(n);
         }
         // à compléter par l'algorithme MCTS-UCT...
 
