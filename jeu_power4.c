@@ -326,6 +326,11 @@ Node * ai_expand_node_and_choose_new_child(Node * node) {
     return node->children[rand() % k];
 }
 
+int ai_simulate_game_playout(Node * node) {
+
+    return 0;
+}
+
 void ai_play_mcts(State * state, int maxtime) {
 
     clock_t tic, toc;
@@ -361,6 +366,7 @@ void ai_play_mcts(State * state, int maxtime) {
         n = ai_select_node_with_best_b_value(root);
         if (!is_win(n)) {
             n = ai_expand_node_and_choose_new_child(n);
+            ai_simulate_game_playout(n);
         }
         // à compléter par l'algorithme MCTS-UCT...
 
