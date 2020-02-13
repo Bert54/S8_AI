@@ -81,7 +81,7 @@ void print_game(State * state) {
     for ( j = 0; j < WIDTH; j++)
         printf(" %d |", j);
     printf("\n");
-    printf("----------------");
+    printf("--------------------------------");
     printf("\n");
 
     for(i=0; i < HEIGHT; i++) {
@@ -89,7 +89,7 @@ void print_game(State * state) {
         for ( j = 0; j < WIDTH; j++)
             printf(" %c |", state->board[i][j]);
         printf("\n");
-        printf("----------------");
+        printf("--------------------------------");
         printf("\n");
     }
 }
@@ -195,6 +195,7 @@ Node * new_node(Node * parent, Move * coup, int max_node ) {
 Node * add_child(Node * parent, Move * coup, int max_node) {
     Node * enfant = new_node(parent, coup, max_node ) ;
     parent->children[parent->nb_children] = enfant;
+    parent->children[parent->nb_children]->parent = parent;
     parent->nb_children++;
     return enfant;
 }
@@ -281,24 +282,36 @@ Node * ai_select_node_with_best_b_value(Node * node) {
         }
         // calcul des b-valeurs
         for (i = 0; i < node->nb_children; i++) {
-            double mu;
-            if (node->nb_simus > 0) {
-                mu = node->nb_victories / node->nb_simus;
+            b_values[i] = rand() % 1000;
+            /**float mu;
+            if (node->children[i]->nb_simus > 0) {
+                mu = (float)node->children[i]->nb_victories / (float)node->children[i]->nb_simus;
             }
             else {
                 mu = 0;
             }
             if (node->children[i]->max_node == 0) {
-                b_values[i] = mu * -1 + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus) ;
+                if (node->children[i]->nb_simus > 0) {
+                    b_values[i] = mu * -1 + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
+                }
+                else {
+                    b_values[i] = 0;
+                }
             }
             else {
-                b_values[i] = mu + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
-            }
+                if (node->children[i]->nb_simus > 0) {
+                    b_values[i] = mu + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
+                }
+                else {
+                    b_values[i] = 0;
+                }
+            }*/
         }
         // sélection du noeud avec la meilleure b-valeur
         Node *best_node = node->children[0];
         int best_node_ind = 0;
         for (i = 1; i < node->nb_children; i++) {
+            //printf("%f\n", b_values[i]);
             if (b_values[i] > b_values[best_node_ind]) {
                 best_node = node->children[i];
                 best_node_ind = i;
@@ -386,6 +399,7 @@ void ai_play_mcts(State * state, int maxtime) {
     }
 
 
+
     //best_move = moves[rand() % k]; // choix aléatoire
 
     int iter = 0;
@@ -411,24 +425,21 @@ void ai_play_mcts(State * state, int maxtime) {
 
     /* fin de l'algorithme  */
 
-    while (n->parent != NULL) {
-        n = n->parent;
-    }
     int i = 0;
     double best_ratio = 0;
     int best_child = 0;
-    for (i = 1 ; i < n->nb_children ; i++) {
-        double ratio = 0;
-        printf("%d\n", n->children[i]->nb_simus);
-        if (n->children[i]->nb_simus > 0) {
-            ratio = n->children[i]->nb_victories / n->children[i]->nb_simus;
+    for (i = 1 ; i < root->nb_children ; i++) {
+        float ratio = 0;
+        printf("%d\n", root->children[i]->nb_simus);
+        if (root->children[i]->nb_simus > 0) {
+            ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
         }
         if (ratio > best_ratio) {
             best_child = i;
             best_ratio = ratio;
         }
     }
-    best_move = n->children[best_child]->move;
+    best_move = root->children[best_child]->move;
 
     // Jouer le meilleur premier coup
     play_move(state, best_move);
