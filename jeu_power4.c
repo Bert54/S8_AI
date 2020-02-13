@@ -328,7 +328,40 @@ Node * ai_expand_node_and_choose_new_child(Node * node) {
 
 int ai_simulate_game_playout(Node * node) {
 
+    Node * copy = new_node(NULL, NULL, 1);
+    copy->state = copy_state(node->state);
+    copy->max_node = node->max_node;
+    FinDePartie fdp;
+    do {
+        Move **moves;
+        moves = possible_moves(copy->state);
+        int move_amount = 0;
+        while (moves[move_amount] != NULL) {
+            move_amount++;
+        }
+        Move * selected_move = moves[rand() % move_amount];
+        play_move(copy->state, selected_move);
+        if (copy->max_node == 1) {
+            copy->max_node = 0;
+        }
+        else {
+            copy->max_node = 1;
+        }
+        fdp = end_test(copy->state);
+    } while (fdp == NON);
+    free_node(copy);
+    if (fdp == ORDI_GAGNE) {
+        return 1;
+    }
     return 0;
+}
+
+void update_nodes_with_reward(Node * node, int reward) {
+    while (node->parent != NULL) {
+        node->nb_simus ++;
+        node->nb_victories += reward;
+        node = node->parent;
+    }
 }
 
 void ai_play_mcts(State * state, int maxtime) {
@@ -366,7 +399,8 @@ void ai_play_mcts(State * state, int maxtime) {
         n = ai_select_node_with_best_b_value(root);
         if (!is_win(n)) {
             n = ai_expand_node_and_choose_new_child(n);
-            ai_simulate_game_playout(n);
+            int reward = ai_simulate_game_playout(n);
+            update_nodes_with_reward(n, reward);
         }
         // à compléter par l'algorithme MCTS-UCT...
 
@@ -377,10 +411,24 @@ void ai_play_mcts(State * state, int maxtime) {
 
     /* fin de l'algorithme  */
 
-    while (n->parent != NULL && n->parent->parent != NULL) {
+    while (n->parent != NULL) {
         n = n->parent;
     }
-    best_move = n->move;
+    int i = 0;
+    double best_ratio = 0;
+    int best_child = 0;
+    for (i = 1 ; i < n->nb_children ; i++) {
+        double ratio = 0;
+        printf("%d\n", n->children[i]->nb_simus);
+        if (n->children[i]->nb_simus > 0) {
+            ratio = n->children[i]->nb_victories / n->children[i]->nb_simus;
+        }
+        if (ratio > best_ratio) {
+            best_child = i;
+            best_ratio = ratio;
+        }
+    }
+    best_move = n->children[best_child]->move;
 
     // Jouer le meilleur premier coup
     play_move(state, best_move);
