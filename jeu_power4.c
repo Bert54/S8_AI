@@ -418,23 +418,32 @@ void ai_play_mcts(State * state, int maxtime) {
     int i = 0;
     double best_ratio = 0;
     int best_child = 0;
-    for (i = 1 ; i < root->nb_children ; i++) {
+    for (i = 0 ; i < root->nb_children ; i++) {
         float ratio = 0;
         if (is_win(root->children[i])) {
             best_ratio = 999999999;
             best_child = i;
         }
-        else if (is_lose(root->children[i])) {
-            best_ratio = 99999999;
-            best_child = i;
-        }
         else {
-            if (root->children[i]->nb_simus > 0) {
-                ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
+            int j;
+            int lose = 0;
+            for (j = 0 ; j < root->children[i]->nb_children ; j++) {
+                if (is_lose(root->children[i]->children[j])) {
+                    lose = 1;
+                }
             }
-            if (ratio > best_ratio) {
+            if (lose) {
+                best_ratio = 99999999;
                 best_child = i;
-                best_ratio = ratio;
+            }
+            else {
+                if (root->children[i]->nb_simus > 0) {
+                    ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
+                }
+                if (ratio > best_ratio) {
+                    best_child = i;
+                    best_ratio = ratio;
+                }
             }
         }
     }
