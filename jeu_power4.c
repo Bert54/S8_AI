@@ -273,11 +273,9 @@ Node * ai_select_node_with_best_b_value(Node * node) {
         double b_values[node->nb_children];
         int i;
         // si un noeud enfant fait gagner l'ordi, on retourne ce noeud
-        if (node->max_node == 1) {
-            for (i = 0; i < node->nb_children; i++) {
-                if (is_win(node->children[i])) {
-                    return node->children[i];
-                }
+        for (i = 0; i < node->nb_children; i++) {
+            if (is_win(node->children[i])) {
+                return node->children[i];
             }
         }
         // calcul des b-valeurs
@@ -406,18 +404,19 @@ void ai_play_mcts(State * state, int maxtime) {
 
     root->nb_victories = 0;
     root->nb_simus = 0;
-    root->max_node = 1;
-    Node *n;
+    root->max_node = 0;
+    Node *n = NULL;
     do {
-
-        n = ai_select_node_with_best_b_value(root);
-        if (!is_win(n)) {
-            n = ai_expand_node_and_choose_new_child(n);
-            int reward = ai_simulate_game_playout(n);
-            update_nodes_with_reward(n, reward);
-        }
-        // à compléter par l'algorithme MCTS-UCT...
-
+         n = ai_select_node_with_best_b_value(root);
+         if (!is_win(n)) {
+             n = ai_expand_node_and_choose_new_child(n);
+             int reward = ai_simulate_game_playout(n);
+             update_nodes_with_reward(n, reward);
+         }
+         else {
+             update_nodes_with_reward(n, 999999);
+         }
+            // à compléter par l'algorithme MCTS-UCT...
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
         iter ++;
@@ -430,7 +429,6 @@ void ai_play_mcts(State * state, int maxtime) {
     int best_child = 0;
     for (i = 1 ; i < root->nb_children ; i++) {
         float ratio = 0;
-        printf("%d\n", root->children[i]->nb_simus);
         if (root->children[i]->nb_simus > 0) {
             ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
         }
