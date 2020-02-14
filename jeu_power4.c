@@ -178,8 +178,8 @@ Node * new_node(Node * parent, Move * coup, int max_node ) {
     noeud->nb_children = 0;
 
     // POUR MCTS:
-    noeud->nb_victories = 0;
-    noeud->nb_simus = 0;
+    noeud->nb_victories = 1;
+    noeud->nb_simus = 1;
 
     if (max_node) {
         noeud->max_node = 1;
@@ -280,35 +280,20 @@ Node * ai_select_node_with_best_b_value(Node * node) {
         }
         // calcul des b-valeurs
         for (i = 0; i < node->nb_children; i++) {
-            b_values[i] = rand() % 1000;
-            /**float mu;
-            if (node->children[i]->nb_simus > 0) {
-                mu = (float)node->children[i]->nb_victories / (float)node->children[i]->nb_simus;
-            }
-            else {
-                mu = 0;
-            }
+            //b_values[i] = rand() % 1000;
+            float mu;
+            mu = (float)node->children[i]->nb_victories / (float)node->children[i]->nb_simus;
             if (node->children[i]->max_node == 0) {
-                if (node->children[i]->nb_simus > 0) {
-                    b_values[i] = mu * -1 + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
-                }
-                else {
-                    b_values[i] = 0;
-                }
+                b_values[i] = mu * -1 + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
             }
             else {
-                if (node->children[i]->nb_simus > 0) {
-                    b_values[i] = mu + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
-                }
-                else {
-                    b_values[i] = 0;
-                }
-            }*/
+                b_values[i] = mu + sqrt(2) * sqrt(log(node->nb_simus) / node->children[i]->nb_simus);
+            }
         }
         // sélection du noeud avec la meilleure b-valeur
         Node *best_node = node->children[0];
         int best_node_ind = 0;
-        for (i = 1; i < node->nb_children; i++) {
+        for (i = 0; i < node->nb_children; i++) {
             //printf("%f\n", b_values[i]);
             if (b_values[i] > b_values[best_node_ind]) {
                 best_node = node->children[i];
@@ -373,6 +358,8 @@ void update_nodes_with_reward(Node * node, int reward) {
         node->nb_victories += reward;
         node = node->parent;
     }
+    node->nb_simus ++;
+    node->nb_victories += reward;
 }
 
 void ai_play_mcts(State * state, int maxtime) {
@@ -402,8 +389,8 @@ void ai_play_mcts(State * state, int maxtime) {
 
     int iter = 0;
 
-    root->nb_victories = 0;
-    root->nb_simus = 0;
+    root->nb_victories = 1;
+    root->nb_simus = 1;
     root->max_node = 0;
     Node *n = NULL;
     do {
@@ -412,9 +399,6 @@ void ai_play_mcts(State * state, int maxtime) {
              n = ai_expand_node_and_choose_new_child(n);
              int reward = ai_simulate_game_playout(n);
              update_nodes_with_reward(n, reward);
-         }
-         else {
-             update_nodes_with_reward(n, 999999);
          }
             // à compléter par l'algorithme MCTS-UCT...
         toc = clock();
