@@ -267,6 +267,13 @@ int is_win(Node * node) {
     return 0;
 }
 
+int is_lose(Node * node) {
+    if (end_test(node->state) == HUMAIN_GAGNE) {
+        return 1;
+    }
+    return 0;
+}
+
 Node * ai_select_node_with_best_b_value(Node * node) {
     // si il y a encore des enfants, c'est qu'on n'est pas dans une feuille, on continue donc à chercher
     if (node->nb_children > 0) {
@@ -413,12 +420,22 @@ void ai_play_mcts(State * state, int maxtime) {
     int best_child = 0;
     for (i = 1 ; i < root->nb_children ; i++) {
         float ratio = 0;
-        if (root->children[i]->nb_simus > 0) {
-            ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
-        }
-        if (ratio > best_ratio) {
+        if (is_win(root->children[i])) {
+            best_ratio = 999999999;
             best_child = i;
-            best_ratio = ratio;
+        }
+        else if (is_lose(root->children[i])) {
+            best_ratio = 99999999;
+            best_child = i;
+        }
+        else {
+            if (root->children[i]->nb_simus > 0) {
+                ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
+            }
+            if (ratio > best_ratio) {
+                best_child = i;
+                best_ratio = ratio;
+            }
         }
     }
     best_move = root->children[best_child]->move;
