@@ -8,7 +8,7 @@
 #define WIDTH 7
 #define HEIGHT 6
 
-#define TIME 6		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TIME 4		// temps de calcul pour un coup avec MCTS (en secondes)
 
 #define MAX_CHILDREN WIDTH
 
@@ -200,6 +200,14 @@ Node * add_child(Node * parent, Move * coup, int max_node) {
     return enfant;
 }
 
+Node * add_child_k(Node * parent, Move * coup, int k,int max_node) {
+    Node * enfant = new_node(parent, coup, max_node ) ;
+    enfant->parent = parent;
+    parent->children[k] = enfant;
+    parent->nb_children = k;
+    return enfant;
+}
+
 void free_node(Node * noeud) {
     if ( noeud->state != NULL)
         free (noeud->state);
@@ -313,13 +321,13 @@ Node * ai_select_node_with_best_b_value(Node * node) {
 }
 
 Node * ai_expand_node_and_choose_new_child(Node * node) {
-    printf("ai_expand_node_and_choose_new_child\n");
+    //printf("ai_expand_node_and_choose_new_child\n");
     Move **moves;
     moves = possible_moves(node->state);
     int k = 0;
     while (moves[k] != NULL) {
         //if (node->max_node == 1) {
-            add_child(node, moves[k], 0);
+        add_child_k(node, moves[k], k,0);
         //}
         //else {
         //    add_child(node, moves[k], 1);
@@ -330,10 +338,9 @@ Node * ai_expand_node_and_choose_new_child(Node * node) {
 }
 
 int ai_simulate_game_playout(Node * node) {
-    printf("ai_simulate_game_playout\n");
+    //printf("ai_simulate_game_playout\n");
     Node * copy = new_node(NULL, NULL, 1);
     copy->state = copy_state(node->state);
-    copy->max_node = node->max_node;
     FinDePartie fdp;
     do {
         Move **moves;
@@ -344,12 +351,6 @@ int ai_simulate_game_playout(Node * node) {
         }
         Move * selected_move = moves[rand() % move_amount];
         play_move(copy->state, selected_move);
-        if (copy->max_node == 1) {
-            copy->max_node = 0;
-        }
-        else {
-            copy->max_node = 1;
-        }
         fdp = end_test(copy->state);
     } while (fdp == NON);
     free_node(copy);
@@ -360,7 +361,7 @@ int ai_simulate_game_playout(Node * node) {
 }
 
 void update_nodes_with_reward(Node * node, int reward) {
-    printf("update_nodes_with_reward\n");
+    //printf("update_nodes_with_reward\n");
     while (node->parent != NULL) {
         node->nb_simus ++;
         node->nb_victories += reward;
@@ -403,11 +404,9 @@ void ai_play_mcts(State * state, int maxtime) {
     Node *n = NULL;
     do {
          n = ai_select_node_with_best_b_value(root);
-         //if (!is_win(n)) {
-             n = ai_expand_node_and_choose_new_child(n);
-             int reward = ai_simulate_game_playout(n);
-             update_nodes_with_reward(n, reward);
-         //}
+         n = ai_expand_node_and_choose_new_child(n);
+         int reward = ai_simulate_game_playout(n);
+         update_nodes_with_reward(n, reward);
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
         iter ++;
@@ -425,13 +424,6 @@ void ai_play_mcts(State * state, int maxtime) {
             best_child = i;
         }
         else {
-            int j;
-            for (j = 0 ; j < root->children[i]->nb_children ; j++) {
-                if (is_lose(root->children[i]->children[j])) {
-                    best_ratio = 999999999.0f;
-                    best_child = j;
-                }
-            }
             if (root->children[i]->nb_simus > 0) {
                 ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
             }
@@ -444,8 +436,8 @@ void ai_play_mcts(State * state, int maxtime) {
     best_move = root->children[best_child]->move;
 
     printf("simulations: %d\n",root->nb_simus);
-    float victory_prob = root->nb_victories / root->nb_simus;
-    printf("probability of victory: %f\n",victory_prob);
+    float victory_prob = (float)(root->nb_victories) / (float)root->nb_simus;
+    printf("probability of victory: %f%%\n",victory_prob*100);
 
     // Jouer le meilleur premier coup
     play_move(state, best_move);
