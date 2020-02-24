@@ -8,7 +8,7 @@
 #define WIDTH 7
 #define HEIGHT 6
 
-#define TIME 3		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TIME 6		// temps de calcul pour un coup avec MCTS (en secondes)
 
 #define MAX_CHILDREN WIDTH
 
@@ -194,8 +194,8 @@ Node * new_node(Node * parent, Move * coup, int max_node ) {
 
 Node * add_child(Node * parent, Move * coup, int max_node) {
     Node * enfant = new_node(parent, coup, max_node ) ;
+    enfant->parent = parent;
     parent->children[parent->nb_children] = enfant;
-    parent->children[parent->nb_children]->parent = parent;
     parent->nb_children++;
     return enfant;
 }
@@ -313,24 +313,24 @@ Node * ai_select_node_with_best_b_value(Node * node) {
 }
 
 Node * ai_expand_node_and_choose_new_child(Node * node) {
+    printf("ai_expand_node_and_choose_new_child\n");
     Move **moves;
     moves = possible_moves(node->state);
     int k = 0;
     while (moves[k] != NULL) {
-        if (node->max_node == 1) {
+        //if (node->max_node == 1) {
             add_child(node, moves[k], 0);
-        }
-        else {
-            add_child(node, moves[k], 1);
-        }
-        node->children[k]->parent = node;
+        //}
+        //else {
+        //    add_child(node, moves[k], 1);
+        //}
         k++;
     }
     return node->children[rand() % k];
 }
 
 int ai_simulate_game_playout(Node * node) {
-
+    printf("ai_simulate_game_playout\n");
     Node * copy = new_node(NULL, NULL, 1);
     copy->state = copy_state(node->state);
     copy->max_node = node->max_node;
@@ -360,6 +360,7 @@ int ai_simulate_game_playout(Node * node) {
 }
 
 void update_nodes_with_reward(Node * node, int reward) {
+    printf("update_nodes_with_reward\n");
     while (node->parent != NULL) {
         node->nb_simus ++;
         node->nb_victories += reward;
@@ -402,12 +403,11 @@ void ai_play_mcts(State * state, int maxtime) {
     Node *n = NULL;
     do {
          n = ai_select_node_with_best_b_value(root);
-         if (!is_win(n)) {
+         //if (!is_win(n)) {
              n = ai_expand_node_and_choose_new_child(n);
              int reward = ai_simulate_game_playout(n);
              update_nodes_with_reward(n, reward);
-         }
-            // à compléter par l'algorithme MCTS-UCT...
+         //}
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
         iter ++;
@@ -416,38 +416,36 @@ void ai_play_mcts(State * state, int maxtime) {
     /* fin de l'algorithme  */
 
     int i = 0;
-    double best_ratio = 0;
+    float best_ratio = 0;
     int best_child = 0;
     for (i = 0 ; i < root->nb_children ; i++) {
         float ratio = 0;
         if (is_win(root->children[i])) {
-            best_ratio = 999999999;
+            best_ratio = 9999999999.0f;
             best_child = i;
         }
         else {
             int j;
-            int lose = 0;
             for (j = 0 ; j < root->children[i]->nb_children ; j++) {
                 if (is_lose(root->children[i]->children[j])) {
-                    lose = 1;
+                    best_ratio = 999999999.0f;
+                    best_child = j;
                 }
             }
-            if (lose) {
-                best_ratio = 99999999;
+            if (root->children[i]->nb_simus > 0) {
+                ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
+            }
+            if (ratio > best_ratio) {
                 best_child = i;
-            }
-            else {
-                if (root->children[i]->nb_simus > 0) {
-                    ratio = (float) root->children[i]->nb_victories / (float) root->children[i]->nb_simus;
-                }
-                if (ratio > best_ratio) {
-                    best_child = i;
-                    best_ratio = ratio;
-                }
+                best_ratio = ratio;
             }
         }
     }
     best_move = root->children[best_child]->move;
+
+    printf("simulations: %d\n",root->nb_simus);
+    float victory_prob = root->nb_victories / root->nb_simus;
+    printf("probability of victory: %f\n",victory_prob);
 
     // Jouer le meilleur premier coup
     play_move(state, best_move);
