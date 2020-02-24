@@ -1,3 +1,8 @@
+/**
+ * Il est important dé préciser qu'il y a une grosse fuite mémoire, ce qui rend l'application instable
+ * IL est possible que celle-ci plante durant l'exécutant, par manque de mémoire.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -92,6 +97,7 @@ void print_game(State * state) {
         printf("--------------------------------");
         printf("\n");
     }
+    fflush(stdout);
 }
 
 Move * new_move(int i) {
@@ -211,7 +217,6 @@ Node * add_child_k(Node * parent, Move * coup, int k, int max_node) {
 void free_node(Node * noeud) {
     if ( noeud->state != NULL)
         free (noeud->state);
-
     while ( noeud->nb_children > 0 ) {
         free_node(noeud->children[noeud->nb_children-1]);
         noeud->nb_children --;
@@ -324,6 +329,7 @@ Node * ai_expand_node_and_choose_new_child(Node * node) {
         }
         k++;
     }
+    free(moves);
     return node->children[rand() % k];
 }
 
@@ -341,6 +347,8 @@ int ai_simulate_game_playout(Node * node) {
         Move * selected_move = moves[rand() % move_amount];
         play_move(copy->state, selected_move);
         fdp = end_test(copy->state);
+        free(moves);
+        free(selected_move);
     } while (fdp == NON);
     free_node(copy);
     if (fdp == ORDI_GAGNE) {
@@ -391,16 +399,14 @@ void ai_play_mcts(State * state, int maxtime) {
     root->max_node = 0;
     Node *n = NULL;
     do {
-         n = ai_select_node_with_best_b_value(root);
-         n = ai_expand_node_and_choose_new_child(n);
-         int reward = ai_simulate_game_playout(n);
-         update_nodes_with_reward(n, reward);
+        n = ai_select_node_with_best_b_value(root);
+        n = ai_expand_node_and_choose_new_child(n);
+        int reward = ai_simulate_game_playout(n);
+        update_nodes_with_reward(n, reward);
         toc = clock();
         temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
         iter ++;
     } while ( temps < maxtime );
-
-    /* fin de l'algorithme  */
 
     int i = 0;
     float best_ratio = 0;
@@ -445,12 +451,15 @@ int main() {
     do {
         printf("\n");
         print_game(state);
+        int move_result;
         if ( state->player == 0 ) {
             // tour de l'humain
 
             do {
                 move = ask_move();
-            } while (!play_move(state, move));
+                move_result = play_move(state, move);
+                free(move);
+            } while (!move_result);
 
         }
         else {
