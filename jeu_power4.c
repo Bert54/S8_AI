@@ -8,7 +8,7 @@
 #define WIDTH 7
 #define HEIGHT 6
 
-#define TIME 4		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TIME 5		// temps de calcul pour un coup avec MCTS (en secondes)
 
 #define MAX_CHILDREN WIDTH
 
@@ -200,7 +200,7 @@ Node * add_child(Node * parent, Move * coup, int max_node) {
     return enfant;
 }
 
-Node * add_child_k(Node * parent, Move * coup, int k,int max_node) {
+Node * add_child_k(Node * parent, Move * coup, int k, int max_node) {
     Node * enfant = new_node(parent, coup, max_node ) ;
     enfant->parent = parent;
     parent->children[k] = enfant;
@@ -275,13 +275,6 @@ int is_win(Node * node) {
     return 0;
 }
 
-int is_lose(Node * node) {
-    if (end_test(node->state) == HUMAIN_GAGNE) {
-        return 1;
-    }
-    return 0;
-}
-
 Node * ai_select_node_with_best_b_value(Node * node) {
     // si il y a encore des enfants, c'est qu'on n'est pas dans une feuille, on continue donc à chercher
     if (node->nb_children > 0) {
@@ -295,7 +288,6 @@ Node * ai_select_node_with_best_b_value(Node * node) {
         }
         // calcul des b-valeurs
         for (i = 0; i < node->nb_children; i++) {
-            //b_values[i] = rand() % 1000;
             float mu;
             mu = (float)node->children[i]->nb_victories / (float)node->children[i]->nb_simus;
             if (node->children[i]->max_node == 0) {
@@ -309,7 +301,6 @@ Node * ai_select_node_with_best_b_value(Node * node) {
         Node *best_node = node->children[0];
         int best_node_ind = 0;
         for (i = 0; i < node->nb_children; i++) {
-            //printf("%f\n", b_values[i]);
             if (b_values[i] > b_values[best_node_ind]) {
                 best_node = node->children[i];
                 best_node_ind = i;
@@ -321,24 +312,22 @@ Node * ai_select_node_with_best_b_value(Node * node) {
 }
 
 Node * ai_expand_node_and_choose_new_child(Node * node) {
-    //printf("ai_expand_node_and_choose_new_child\n");
     Move **moves;
     moves = possible_moves(node->state);
     int k = 0;
     while (moves[k] != NULL) {
-        //if (node->max_node == 1) {
-        add_child_k(node, moves[k], k,0);
-        //}
-        //else {
-        //    add_child(node, moves[k], 1);
-        //}
+        if (node->max_node == 1) {
+            add_child_k(node, moves[k], k,0);
+        }
+        else {
+            add_child_k(node, moves[k], k, 1);
+        }
         k++;
     }
     return node->children[rand() % k];
 }
 
 int ai_simulate_game_playout(Node * node) {
-    //printf("ai_simulate_game_playout\n");
     Node * copy = new_node(NULL, NULL, 1);
     copy->state = copy_state(node->state);
     FinDePartie fdp;
@@ -361,7 +350,6 @@ int ai_simulate_game_playout(Node * node) {
 }
 
 void update_nodes_with_reward(Node * node, int reward) {
-    //printf("update_nodes_with_reward\n");
     while (node->parent != NULL) {
         node->nb_simus ++;
         node->nb_victories += reward;
